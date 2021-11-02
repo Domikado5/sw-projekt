@@ -33,29 +33,93 @@ def detect_faces(image):
     return faces
 
 
-def crop_face(image, x, y, w, h):
+def crop_face(image, pos):
     """
     Cropping the face from the image
     """
+    (x, y, w, h) = pos
+    
     return image[y:y+h, x:x+w]
 
 
 def preprocess_face(image):
     """
-    Preprocessing the face in a way that's suitable for the model
+    Preprocessing the face in the way that's suitable for the model
     """
     prep_face = cv2.resize(image, (218, 178))
-    # prep_face = prep_face.reshape(-1, 218, 178, 3)  # uncomment if there are problems with dimensions
+    prep_face = prep_face.reshape(-1, 218, 178, 3)  # uncomment if there are problems with dimensions
 
     return prep_face
+
+
+def contour_face(image, face):
+    """
+    Drawing a rectangle around the face
+    """
+    (x, y, w, h) = face
+    cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
+
+
+def describe_face(image, face, attrib):
+    """
+    Write attributes next to the face
+    """
+    (x, y, w, h) = face
+    text = ' '.join(attrib)
+    cv2.putText(image, text, (int(x+w/2 - 30), y-15), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
+
+
+
+def make_prediction(face):
+    """
+    Making attributes prediction for a face
+    Return: a list/array of attributes
+    """
+    pred = model.predict(face).reshape(-1)
+    mask = pred > 0.5  # creating a boolean mask for attributes, the threshold can be changed
+    face_attributes = attributes[mask]
+
+    return face_attributes
+
 
 def main():
     cam = cv2.VideoCapture(0)
     while True:
         _, img = cam.read()
+        faces = detect_faces(img)
+
+        for face_pos in faces:
+            cropped_face = crop_face(img, face_pos)
+            prep_face = preprocess_face(cropped_face)
+            prediction = make_prediction(prep_face)
+            contour_face(img, face_pos)
+            describe_face(img, face_pos, prediction)
+
+        cv2.imshow('img', img)
+
         if cv2.waitKey(1) == 27:  # ESC
             break
-    cv2.destroyAllWindows()       
+
+    cv2.destroyAllWindows()
+
+
+def predict_from_photo(img_name):
+    img = cv2.imread(img_name)
+    faces = detect_faces(img)
+
+    for face_pos in faces:
+        cropped_face = crop_face(img, face_pos)
+        prep_face = preprocess_face(cropped_face)
+        prediction = make_prediction(prep_face)
+        contour_face(img, face_pos)
+        describe_face(img, face_pos, prediction)
+
+    cv2.imshow('img', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
 
 if __name__ == '__main__':
     init()
+    main()
+    # predict_from_photo('02.png')
