@@ -3,8 +3,11 @@
 * [Description](#description)
 * [Dataset](#dataset)
 * [Model](#model)
+    * [Architecture](#architecture)
 * [Installation](#installation)
 * [Graphs and images](#graphs-and-images)
+    * [Loss](#loss)
+    * [AUC](#auc-score)
 * [TODO](#todo)
 
 ## Description
@@ -16,15 +19,7 @@ The dataset can be downloaded from [here](https://mmlab.ie.cuhk.edu.hk/projects/
 
 
 ## Model
-1. Description
-
-    - To recognize the attributes we used a deep CNN. It contains 3 convolutional layers, 3 pooling layers and 2 dense layers. To regularize the model we used batch normalization after every pooling layer and dropout layers after every dense layer. All activation functions inside the neural network are leaky ReLUs, the output activation function is sigmoid.
-
-    - As an optimizer we used Adam optimizer, and as the loss - binary crossentropy.  
-
-    - The metrics used to evaluate the performance of the model were AUC, recall and precision.
-
-2. Architecture  
+### Architecture  
 ![](/additional/model.png)
 
 ## Installation
@@ -39,6 +34,12 @@ Windows (in cmd): ```venv/Scripts/activate.bat```
 ```python main.py```
 
 ## Graphs and images
+
+### Loss  
+![](/additional/loss_plot.png)  
+
+### AUC Score
+![](/additional/auc_plot.png)  
 
 ## TODO
 - improve the neural network
