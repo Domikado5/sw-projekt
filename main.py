@@ -62,14 +62,22 @@ def contour_face(image, face):
     cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
 
-def describe_face(image, face, attrib):
+def describe_face(image, face, level):
     """
     Write attributes next to the face
     """
     (x, y, w, _) = face
-    text = ' '.join(attrib)
+    text = str(level+1)
     cv2.putText(image, text, (int(x+w/2 - 30), y-15), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
 
+
+def print_attributes(image, level, attrib):
+    text = f"{level+1}: "
+    for x in range(0, len(attrib),5):
+        text += ' '.join(attrib[x:x+5])
+        text += "\n"
+    for i, line in enumerate(text.split('\n')):
+        cv2.putText(image, line, (5, int((image.shape[0]/6)*(level+1))+i*20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
 
 def make_prediction(face):
@@ -88,16 +96,19 @@ def main():
     cam = cv2.VideoCapture(0)
     while True:
         _, img = cam.read()
+        img2 = np.zeros((int(img.shape[0]/2), int(img.shape[1]), 3), np.uint8)
         faces = detect_faces(img)
 
-        for face_pos in faces:
+        for idx, face_pos in enumerate(faces):
             cropped_face = crop_face(img, face_pos)
             prep_face = preprocess_face(cropped_face)
             prediction = make_prediction(prep_face)
             contour_face(img, face_pos)
-            describe_face(img, face_pos, prediction)
+            describe_face(img, face_pos, idx)
+            print_attributes(img2, idx, prediction)
 
-        cv2.imshow('img', img)
+        img_v = cv2.vconcat([img, img2])
+        cv2.imshow('img', img_v)
 
         if cv2.waitKey(1) == 27:  # ESC
             break
