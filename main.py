@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from numpy.lib.type_check import imag
 from tensorflow.keras.models import load_model
 
 def init():
@@ -33,13 +34,29 @@ def detect_faces(image):
     return faces
 
 
-def crop_face(image, pos):
+def crop_face(image, pos, exp_val=(300, 300)):
     """
     Cropping the face from the image
+    
+    exp_val - values responsible for expanding the face, can be changed
     """
     (x, y, w, h) = pos
+    dx, dy = exp_val
+    y1, x1 = y, x
+    y2, x2 = y+h, x+w
+
+    if y1 - dy < 0:
+        y1 = 0
+    if y2 + dy > image.shape[0]:
+        y2 = image.shape[0]
+    if x1 - dx < 0:
+        x1 = 0
+    if x2 + dx > image.shape[1]:
+        x2 = image.shape[1]
     
-    return image[y:y+h, x:x+w]
+    
+    # return image[y:y+h, x:x+w]
+    return image[y1:y2, x1:x2]  # returning the expanded face
 
 
 def preprocess_face(image):
