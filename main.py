@@ -46,7 +46,9 @@ def preprocess_face(image):
     """
     Preprocessing the face in the way that's suitable for the model
     """
-    prep_face = cv2.resize(image, (218, 178))
+    prep_face = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # opencv stores images in BGR format, convertion might be needed
+    prep_face = cv2.resize(image, (178, 218))
+    prep_face = prep_face/255
     prep_face = prep_face.reshape(-1, 218, 178, 3)  # uncomment if there are problems with dimensions
 
     return prep_face
@@ -64,7 +66,7 @@ def describe_face(image, face, attrib):
     """
     Write attributes next to the face
     """
-    (x, y, w, h) = face
+    (x, y, w, _) = face
     text = ' '.join(attrib)
     cv2.putText(image, text, (int(x+w/2 - 30), y-15), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
 
@@ -76,7 +78,7 @@ def make_prediction(face):
     Return: a list/array of attributes
     """
     pred = model.predict(face).reshape(-1)
-    mask = pred > 0.5  # creating a boolean mask for attributes, the threshold can be changed
+    mask = pred >= 0.5  # creating a boolean mask for attributes, the threshold can be changed
     face_attributes = attributes[mask]
 
     return face_attributes
