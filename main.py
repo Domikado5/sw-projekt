@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-from numpy.lib.type_check import imag
 from tensorflow.keras.models import load_model
 
 def init():
@@ -12,14 +11,14 @@ def init():
     global attributes
 
     face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-    model = load_model('model.h5')
+    model = load_model('model.hdf5')
 
-    attributes = np.array(['5_o_Clock_Shadow', 'Arched_Eyebrows', 'Attractive', 'Bags_Under_Eyes',
-                           'Bald', 'Bangs', 'Big_Lips', 'Big_Nose', 'Black_Hair', 'Blond_Hair', 'Blurry',
+    attributes = np.array(['5_o_Clock_Shadow', 'Arched_Eyebrows', 'Bags_Under_Eyes',
+                           'Bald', 'Bangs', 'Big_Lips', 'Big_Nose', 'Black_Hair', 'Blond_Hair',
                            'Brown_Hair', 'Bushy_Eyebrows', 'Chubby', 'Double_Chin', 'Eyeglasses',
                            'Goatee', 'Gray_Hair', 'Heavy_Makeup', 'High_Cheekbones', 'Male',
                            'Mouth_Slightly_Open', 'Mustache', 'Narrow_Eyes', 'No_Beard', 'Oval_Face',
-                           'Pale_Skin', 'Pointy_Nose', 'Receding_Hairline', 'Rosy_Cheeks', 'Sideburns',
+                           'Pointy_Nose', 'Receding_Hairline', 'Rosy_Cheeks', 'Sideburns',
                            'Smiling', 'Straight_Hair', 'Wavy_Hair', 'Wearing_Earrings', 'Wearing_Hat',
                            'Wearing_Lipstick', 'Wearing_Necklace', 'Wearing_Necktie', 'Young'])
 
@@ -34,28 +33,19 @@ def detect_faces(image):
     return faces
 
 
-def crop_face(image, pos, exp_val=(300, 300)):
+def crop_face(image, pos):
     """
     Cropping the face from the image
     
     exp_val - values responsible for expanding the face, can be changed
     """
     (x, y, w, h) = pos
-    dx, dy = exp_val
-    y1, x1 = y, x
-    y2, x2 = y+h, x+w
+    W, H, _ = image.shape
 
-    if y1 - dy < 0:
-        y1 = 0
-    if y2 + dy > image.shape[0]:
-        y2 = image.shape[0]
-    if x1 - dx < 0:
-        x1 = 0
-    if x2 + dx > image.shape[1]:
-        x2 = image.shape[1]
+    x1, x2 = (max(0, x - int(w * 0.35)), min(x + int(1.35 * w), W))
+    y1, y2 = (max(0, y - int(0.35 * h)), min(y + int(1.35 * h), H))
     
     
-    # return image[y:y+h, x:x+w]
     return image[y1:y2, x1:x2]  # returning the expanded face
 
 
@@ -63,10 +53,10 @@ def preprocess_face(image):
     """
     Preprocessing the face in the way that's suitable for the model
     """
-    prep_face = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # opencv stores images in BGR format, convertion might be needed
-    prep_face = cv2.resize(image, (178, 218))
+    prep_face = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # opencv stores images in BGR format
+    prep_face = cv2.resize(image, (224, 224))
     prep_face = prep_face/255
-    prep_face = prep_face.reshape(-1, 218, 178, 3)  # uncomment if there are problems with dimensions
+    prep_face = prep_face.reshape(-1, 224, 224, 3)
 
     return prep_face
 
@@ -89,6 +79,7 @@ def describe_face(image, face, level):
 
 
 def print_attributes(image, level, attrib):
+    #  TODO
     text = f"{level+1}: "
     for x in range(0, len(attrib),5):
         text += ' '.join(attrib[x:x+5])
@@ -105,6 +96,9 @@ def make_prediction(face):
     pred = model.predict(face).reshape(-1)
     mask = pred >= 0.5  # creating a boolean mask for attributes, the threshold can be changed
     face_attributes = attributes[mask]
+    if 'Male' not in face_attributes: face_attributes = np.append(face_attributes, 'Female')
+    if 'No_Beard' not in face_attributes: face_attributes = np.append(face_attributes, 'Beard')
+    if 'Young' not in face_attributes: face_attributes = np.append(face_attributes, 'Old')
 
     return face_attributes
 
@@ -136,20 +130,22 @@ def main():
 def predict_from_photo(img_name):
     img = cv2.imread(img_name)
     faces = detect_faces(img)
-
-    for face_pos in faces:
+    img2 = np.zeros((int(img.shape[0]/2), int(img.shape[1]), 3), np.uint8)
+    for idx, face_pos in enumerate(faces):
         cropped_face = crop_face(img, face_pos)
         prep_face = preprocess_face(cropped_face)
         prediction = make_prediction(prep_face)
         contour_face(img, face_pos)
-        describe_face(img, face_pos, prediction)
+        describe_face(img, face_pos, idx)
+        print_attributes(img2, idx, prediction)
 
-    cv2.imshow('img', img)
+    img_v = cv2.vconcat([img, img2])
+    cv2.imshow('img', img_v)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
     init()
-    main()
-    # predict_from_photo('02.png')
+    # main()
+    predict_from_photo('sample_images/02.png')
